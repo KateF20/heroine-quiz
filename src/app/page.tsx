@@ -4,16 +4,27 @@ import { QUESTIONS } from '@/lib/questions';
 import { Letter, AnswerMap } from '@/types/quiz';
 import { scoreQuiz } from '@/lib/scoring';
 import { RESULT_BLURBS } from '@/lib/results';
+import PhotoUploader from '@/components/PhotoUploader';
 
 export default function QuizPage() {
-  const [step, setStep] = useState(0); // 0..QUESTIONS.length
+  // quiz state
+  const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<AnswerMap>({});
-
   const total = QUESTIONS.length;
   const done = step >= total;
-
   const progressPct = Math.round((Math.min(step, total) / total) * 100);
 
+  // poster generation state
+  const [mode, setMode] = useState<'photo' | 'no-photo' | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [consentAccepted, setConsentAccepted] = useState<boolean>(
+    typeof document !== 'undefined' ? document.cookie.includes('photo_consent=1') : false
+  );
+  const [genImage, setGenImage] = useState<string | null>(null);
+  const [loadingGen, setLoadingGen] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
+
+  // quiz handlers
   const onPick = (letter: Letter) => {
     const q = QUESTIONS[step];
     setAnswers(prev => ({ ...prev, [q.id]: letter }));
@@ -24,14 +35,87 @@ export default function QuizPage() {
   const restart = () => {
     setAnswers({});
     setStep(0);
+    setMode(null);
+    setPhotoFile(null);
+    setGenImage(null);
+    setGenError(null);
+    setLoadingGen(false);
   };
 
+  // compute result
   const result = useMemo(() => {
     if (!done) return null;
-    // ensure all answered
     if (Object.keys(answers).length !== total) return null;
     return scoreQuiz(answers);
   }, [done, answers, total]);
+
+  // consent cookie
+  const acceptConsent = () => {
+    document.cookie = 'photo_consent=1; Max-Age=15552000; Path=/'; // ~180 days
+    setConsentAccepted(true);
+  };
+
+  // generation
+  const generateWithPhoto = async () => {
+  if (!photoFile) return;
+
+  setLoadingGen(true);
+  setGenError(null);
+  setGenImage(null);
+
+  try {
+    // 1) get signed upload URL
+    const upRes = await fetch('/api/upload', { method: 'POST' });
+    if (!upRes.ok) throw new Error('Failed to get upload URL');
+    const { url: uploadUrl } = await upRes.json();
+
+    // 2) upload the raw file -> Vercel Blob returns JSON with { url: blobUrl }
+    const putRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      body: photoFile,
+      headers: { 'content-type': photoFile.type || 'image/png' },
+    });
+    if (!putRes.ok) throw new Error('File upload failed');
+    const { url: blobUrl } = await putRes.json();
+
+    // 3) call generator (image-to-image)
+    const genRes = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ answers, blobUrl }),
+    });
+    if (!genRes.ok) {
+      const t = await genRes.text();
+      throw new Error(t || 'Generation failed');
+    }
+    const gen = await genRes.json();
+
+    // server returns { heroine, imageUrl }
+    setGenImage(gen.imageUrl);
+  } catch (err: any) {
+    setGenError(err.message || 'Generation failed. Please try again.');
+  } finally {
+    setLoadingGen(false);
+  }
+};
+
+  const generateNoPhoto = async () => {
+    setLoadingGen(true);
+    setGenError(null);
+    setGenImage(null);
+    try {
+      const gen = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ answers }), // no blobUrl -> text-to-image
+      }).then(r => r.json());
+      setGenImage(gen.dataUrl);
+    } catch (e: any) {
+      setGenError('Generation failed. Please try again.');
+    } finally {
+      setLoadingGen(false);
+    }
+  };
 
   return (
     <main className="mx-auto max-w-2xl p-6">
@@ -39,10 +123,7 @@ export default function QuizPage() {
 
       {/* Progress */}
       <div className="mt-4 h-2 w-full rounded bg-neutral-200">
-        <div
-          className="h-2 rounded bg-black transition-all"
-          style={{ width: `${progressPct}%` }}
-        />
+        <div className="h-2 rounded bg-black transition-all" style={{ width: `${progressPct}%` }} />
       </div>
       <div className="mt-1 text-xs opacity-60">{Math.min(step, total)} / {total}</div>
 
@@ -73,11 +154,85 @@ export default function QuizPage() {
           </div>
         </section>
       ) : (
-        <section className="mt-8">
+        <section className="mt-8 space-y-6">
           {result ? (
-            <div className="space-y-4">
+            <>
               <h2 className="text-2xl font-bold">Your result:</h2>
               <ResultBlock heroine={result.winner} />
+
+              {/* Poster generation panel */}
+              <div className="rounded-xl border p-4 space-y-3">
+                <h3 className="font-semibold">Create your poster</h3>
+                <div className="flex gap-2">
+                  <button
+                    className={`rounded-lg border px-3 py-2 ${mode === 'photo' ? 'bg-black text-white' : ''}`}
+                    onClick={() => setMode('photo')}
+                  >
+                    With my photo
+                  </button>
+                  <button
+                    className={`rounded-lg border px-3 py-2 ${mode === 'no-photo' ? 'bg-black text-white' : ''}`}
+                    onClick={() => setMode('no-photo')}
+                  >
+                    No photo
+                  </button>
+                </div>
+
+                {mode === 'photo' && (
+                  <div className="space-y-3">
+                    {!consentAccepted && (
+                      <div className="rounded-lg border p-3 text-sm leading-relaxed">
+                        <strong>Photo processing notice</strong>
+                        <p className="mt-1">
+                          Your photo is uploaded temporarily for rendering and is <em>deleted immediately</em> after the poster is generated.
+                          Retention: only during processing. No analytics or re-use.
+                        </p>
+                        <button onClick={acceptConsent} className="mt-2 rounded border px-3 py-1">
+                          I agree
+                        </button>
+                      </div>
+                    )}
+
+                    <PhotoUploader onPick={setPhotoFile} />
+                    <button
+                      onClick={generateWithPhoto}
+                      disabled={!photoFile || !consentAccepted || loadingGen}
+                      className="rounded-xl bg-black px-5 py-3 text-white disabled:opacity-40"
+                    >
+                      {loadingGen ? 'Rendering…' : 'Generate with my photo'}
+                    </button>
+                  </div>
+                )}
+
+                {mode === 'no-photo' && (
+                  <div>
+                    <button
+                      onClick={generateNoPhoto}
+                      disabled={loadingGen}
+                      className="rounded-xl bg-black px-5 py-3 text-white disabled:opacity-40"
+                    >
+                      {loadingGen ? 'Rendering…' : 'Generate without photo'}
+                    </button>
+                  </div>
+                )}
+
+                {genError && <div className="text-sm text-red-600">{genError}</div>}
+              </div>
+
+              {/* Output */}
+              {genImage && (
+                <div className="rounded-2xl border p-4">
+                  <h4 className="font-semibold mb-2">Your poster</h4>
+                  <img src={genImage} alt="Generated poster" className="rounded-lg max-w-full" />
+                  <a
+                    href={genImage}
+                    download="heroine-poster.png"
+                    className="mt-3 inline-block rounded border px-4 py-2"
+                  >
+                    Download PNG
+                  </a>
+                </div>
+              )}
 
               <details className="mt-2 rounded-lg border p-3 text-sm">
                 <summary className="cursor-pointer select-none">See your tally</summary>
@@ -91,12 +246,10 @@ export default function QuizPage() {
                 </ul>
               </details>
 
-              <div className="pt-4">
-                <button onClick={restart} className="rounded-xl bg-black px-5 py-3 text-white">
-                  Take it again
-                </button>
+              <div className="pt-2">
+                <button onClick={restart} className="rounded-xl border px-4 py-2">Take it again</button>
               </div>
-            </div>
+            </>
           ) : (
             <div className="space-y-4">
               <h2 className="text-xl font-semibold">Almost there</h2>
