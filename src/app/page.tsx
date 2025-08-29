@@ -87,11 +87,13 @@ export default function QuizPage() {
 
     // IMPORTANT: use imageUrl (not dataUrl)
     setGenImage(gen.imageUrl);
-  } catch (err: any) {
-    setGenError(err.message || 'Generation failed. Please try again.');
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Generation failed. Please try again.';
+    setGenError(msg);
   } finally {
     setLoadingGen(false);
   }
+
 };
 
 const generateNoPhoto = async () => {
@@ -113,13 +115,13 @@ const generateNoPhoto = async () => {
 
     // IMPORTANT: use imageUrl (not dataUrl)
     setGenImage(gen.imageUrl);
-  } catch (err: any) {
-    setGenError(err.message || 'Generation failed. Please try again.');
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Generation failed. Please try again.';
+    setGenError(msg);
   } finally {
     setLoadingGen(false);
   }
 };
-
 
   return (
     <main className="mx-auto max-w-2xl p-6">

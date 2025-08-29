@@ -34,7 +34,7 @@ export default function PhotoUploader({ onPick }: { onPick: (f: File | null) => 
         await videoRef.current.play();
         setStreaming(true);
       }
-    } catch (e) {
+    } catch (_err) {
       alert('Kamera-Zugriff nicht möglich. Bitte Berechtigung prüfen oder Datei hochladen.');
     }
   };

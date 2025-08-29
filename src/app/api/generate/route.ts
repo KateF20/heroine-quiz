@@ -4,6 +4,10 @@ import { PROMPTS } from '@/lib/prompts';
 import { scoreQuiz } from '@/lib/scoring';
 import { del, put } from '@vercel/blob';
 
+type ImageGenData = { url?: string; b64_json?: string };
+type APIErrorLike = { status?: number; code?: string; message?: string };
+
+
 export const runtime = 'nodejs';
 
 /** Safety-friendly prompt builder */
@@ -62,7 +66,7 @@ async function generateEditViaHTTP(blobUrl: string, prompt: string) {
   const text = await resp.text();
   if (!resp.ok) throw new Error(text);
 
-  const json: any = JSON.parse(text);
+  const json = JSON.parse(text) as { data: ImageGenData[] };
   const d = json?.data?.[0];
   const url =
     d?.url ??
@@ -72,7 +76,6 @@ async function generateEditViaHTTP(blobUrl: string, prompt: string) {
   return url as string;
 }
 
-/** TEXT path via SDK; handles url OR b64_json */
 async function tryGenerateText(openai: OpenAI, heroine: string, style: string) {
   const make = async (prompt: string) => {
     const out = await openai.images.generate({
@@ -80,7 +83,7 @@ async function tryGenerateText(openai: OpenAI, heroine: string, style: string) {
       prompt,
       size: '1024x1536',
     });
-    const d: any = out?.data?.[0];
+    const d = (out?.data?.[0] as ImageGenData | undefined);
     const finalUrl =
       d?.url ??
       (d?.b64_json ? `data:image/png;base64,${d.b64_json}` : undefined);
@@ -90,16 +93,18 @@ async function tryGenerateText(openai: OpenAI, heroine: string, style: string) {
 
   try {
     return await make(buildPrompt(heroine, style, 'text'));
-  } catch (err: any) {
-    if (err?.code === 'moderation_blocked' || err?.status === 400) {
+  } catch (err: unknown) {
+    const e = err as APIErrorLike;
+    if (e?.code === 'moderation_blocked' || e?.status === 400) {
       return await make(
         `Stylized theatre poster portrait of a fully clothed performer in an elegant, modest outfit. ` +
-          `Focus on abstract, graphic, PG visuals with decorative background. ${style}. Portrait from chest up, non-suggestive.`
+        `Focus on abstract, graphic, PG visuals with decorative background. ${style}. Portrait from chest up, non-suggestive.`
       );
     }
     throw err;
   }
 }
+
 
 /** EDIT path using the HTTP helper above; always deletes the selfie */
 async function tryGenerateEdit(heroine: string, style: string, blobUrl: string) {
@@ -130,27 +135,13 @@ export async function POST(req: Request) {
     const imageUrl = await persistToBlob(rawUrl);
 
     return NextResponse.json({ heroine: winner, imageUrl });
-  } catch (err: any) {
-    // Optional: fallback to local posters if moderation blocks
-    if (err?.code === 'moderation_blocked' || err?.status === 400) {
-      const slugMap: Record<string, string> = {
-        Glinda: 'glinda', // keep if you have local posters
-        Christine: 'christine',
-        'Velma Kelly': 'velma-kelly',
-        Elsa: 'elsa',
-        'Veronica Sawyer': 'veronica-sawyer',
-        'Angelica Schuyler': 'angelica-schuyler',
-        'Mary Poppins': 'mary-poppins',
-        Satine: 'satine',
-        Maria: 'maria',
-        Lydia: 'lydia',
-        Maureen: 'maureen',
-      };
-      const slug = slugMap[winner] ?? 'christine';
-      return NextResponse.json({ heroine: winner, imageUrl: `/posters/${slug}.png` });
-    }
-
+  } catch (err: unknown) {
+    const e = err as APIErrorLike | Error | unknown;
+    const msg =
+      (typeof e === 'object' && e && 'message' in e && typeof (e as any).message === 'string')
+        ? (e as any).message
+        : 'internal_error';
     console.error(err);
-    return NextResponse.json({ error: 'internal_error', message: String(err?.message || err) }, { status: 500 });
+    return NextResponse.json({ error: 'internal_error', message: msg }, { status: 500 });
   }
 }

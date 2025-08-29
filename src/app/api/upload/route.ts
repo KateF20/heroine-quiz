@@ -11,15 +11,13 @@ export async function POST(request: Request) {
       onBeforeGenerateToken: async () => ({
         allowedContentTypes: ['image/jpeg', 'image/png', 'image/webp'],
         addRandomSuffix: true,
-        // tokenPayload is optional; omit or add metadata if you want
       }),
-      // onUploadCompleted runs after the browser finishes the upload.
-      // You don't need it for this flow, so we leave it empty.
       onUploadCompleted: async () => {},
     });
 
     return NextResponse.json(json);
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 400 });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'upload_error';
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
 }
