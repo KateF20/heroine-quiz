@@ -18,7 +18,6 @@ function buildPrompt(heroine: string, style: string, mode: 'text' | 'edit') {
     : `Stylized ${heroine} theatre poster portrait. ${style}. ${safety}.`;
 }
 
-/** Persist either a remote URL or data URL to Vercel Blob for a stable link */
 async function persistToBlob(imageRef: string) {
   const fname = `posters/${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
 
@@ -34,12 +33,15 @@ async function persistToBlob(imageRef: string) {
   } else {
     const res = await fetch(imageRef);
     const ab = await res.arrayBuffer();
-    const { url } = await put(fname, new Uint8Array(ab), {
+    const { url } = await put(fname, Buffer.from(ab), {
       access: 'public',
       contentType: 'image/png',
       token: process.env.BLOB_READ_WRITE_TOKEN!,
     });
     return url;
+
+
+
   }
 }
 
