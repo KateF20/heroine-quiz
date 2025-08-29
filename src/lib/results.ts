@@ -1,37 +1,59 @@
 import { Heroine } from '@/types/quiz';
 
-export const RESULT_BLURBS: Record<Heroine, { title: string; blurb: string }>
-= {
-  'Glinda': {
-    title: 'Glinda — Wicked',
-    blurb: 'Social genius with a golden heart. You lift rooms with optimism, network like a pro, and use charm as a tool for good. Under the sparkle is real strategy—and you love helping friends shine.',
+export const RESULT_BLURBS: Record<Heroine, { title: string; blurb: string }> = {
+  Elphaba: {
+    title: 'Elphaba — Wicked',
+    blurb:
+      'Idealismus + Rückgrat. Du sagst, was gesagt werden muss, nimmst Verantwortung an dich und gehst deinen Weg – auch gegen den Wind. Tief loyal, tief wirkend.',
   },
-  'Christine': {
+  Christine: {
     title: 'Christine Daaé — The Phantom of the Opera',
-    blurb: 'Quiet strength, luminous voice. You lead with dedication and craft, stepping up when it matters. Courage and loyalty anchor your art and your relationships.',
+    blurb:
+      'Licht und Disziplin. Du führst mit Können und Herz, findest im entscheidenden Moment Mut – und lässt Räume still werden.',
   },
-  'Velma Kelly': {
+  Maria: {
+    title: 'Maria — West Side Story',
+    blurb:
+      'Herz zuerst. Du glaubst an das Gute, gibst Liebe Richtung und schaffst Frieden, wo andere nur Kanten sehen. Hoffnung mit Haltung.',
+  },
+  Velma: {
     title: 'Velma Kelly — Chicago',
-    blurb: 'Showbiz steel with impeccable timing. Witty, composed, and endlessly stage-savvy, you command attention and turn pressure into performance.',
+    blurb:
+      'Timing & Show-Savvy. Du bleibst cool, findest die Pointe – und holst dir das Spotlight, wenn es zählt. Smart, scharf, souverän.',
   },
-  'Elsa': {
+  Sally: {
+    title: 'Sally Bowles — Cabaret',
+    blurb:
+      'Freigeist mit Funkeln. Du kurierst Krisen mit Charme, liebst Impro und Risiko – und bleibst dennoch du selbst.',
+  },
+  Elsa: {
     title: 'Elsa — Frozen',
-    blurb: 'Power held with responsibility. Reflective and protective of your people, you move at your own tempo—and blaze on your terms when it counts.',
+    blurb:
+      'Klarheit & Schutz. Du kennst deine Kraft, setzt Grenzen, trägst Verantwortung – und taust auf, wenn Vertrauen da ist.',
   },
-  'Veronica Sawyer': {
-    title: 'Veronica Sawyer — Heathers',
-    blurb: 'Sharp mind, sharper moral compass. You spot nonsense a mile away, call it out with style, and stay loyal to your real ones. Wit + integrity is your signature.',
+  Satine: {
+    title: 'Satine — Moulin Rouge!',
+    blurb:
+      'Glamour mit Grit. Du navigierst Welten aus Stil und Strategie, gibst deinem Kreis Halt und machst Glanz zu Inhalt.',
   },
   'Angelica Schuyler': {
     title: 'Angelica Schuyler — Hamilton',
-    blurb: 'Brains, ambition, strategist’s heart. You think three moves ahead, debate for sport, and balance dream and duty with grace. Words are your weapon.',
+    blurb:
+      'Verstand mit Eleganz. Du denkst drei Züge voraus, argumentierst präzise und hältst Loyalität & Vision in Balance.',
   },
   'Mary Poppins': {
     title: 'Mary Poppins — Mary Poppins',
-    blurb: 'Practical magic, tidy results. You keep ensembles humming, turn chaos into rhythm, and lace kindness with standards. People feel taller after working with you.',
+    blurb:
+      'Praktische Magie. Du bringst Ordnung in Chaos, hebst Teams an und verpackst Standards in Charme. Nach dir läuft es.',
   },
-  'Satine': {
-    title: 'Satine — Moulin Rouge!',
-    blurb: 'Glamour with grit. You understand the game, protect your art and your circle, and turn the spotlight into purpose. Elegance, resilience, show‑must‑go‑on soul.',
+  Lydia: {
+    title: 'Lydia — Beetlejuice',
+    blurb:
+      'Dunkelbunt & klug. Du siehst durch die Oberfläche, findest Humor in Schatten und machst daraus Kunst.',
+  },
+  Maureen: {
+    title: 'Maureen — Rent',
+    blurb:
+      'Kunst = Aktion. Du performst laut, liebst Bühne & Community, stellst Fragen und machst Nächte zu Statements.',
   },
 };

@@ -1,13 +1,16 @@
 export type Letter = 'A' | 'B' | 'C' | 'D';
 export type Heroine =
-    | 'Glinda'
-    | 'Christine'
-    | 'Velma Kelly'
-    | 'Elsa'
-    | 'Veronica Sawyer'
-    | 'Angelica Schuyler'
-    | 'Mary Poppins'
-    | 'Satine';
+  | 'Elphaba'
+  | 'Christine'
+  | 'Maria'              // West Side Story
+  | 'Velma'
+  | 'Sally'
+  | 'Elsa'
+  | 'Satine'
+  | 'Angelica Schuyler'
+  | 'Mary Poppins'
+  | 'Lydia'
+  | 'Maureen';
 
-export type AnswerMap = Record<number, Letter>; // Q-number -> choice
+export type AnswerMap = Record<number, Letter>;
 export type Tally = Record<Heroine, number>;

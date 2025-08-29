@@ -5,6 +5,7 @@ import { Letter, AnswerMap } from '@/types/quiz';
 import { scoreQuiz } from '@/lib/scoring';
 import { RESULT_BLURBS } from '@/lib/results';
 import PhotoUploader from '@/components/PhotoUploader';
+import { upload } from '@vercel/blob/client';
 
 export default function QuizPage() {
   // quiz state
@@ -64,33 +65,27 @@ export default function QuizPage() {
   setGenImage(null);
 
   try {
-    // 1) get signed upload URL
-    const upRes = await fetch('/api/upload', { method: 'POST' });
-    if (!upRes.ok) throw new Error('Failed to get upload URL');
-    const { url: uploadUrl } = await upRes.json();
-
-    // 2) upload the raw file -> Vercel Blob returns JSON with { url: blobUrl }
-    const putRes = await fetch(uploadUrl, {
-      method: 'PUT',
-      body: photoFile,
-      headers: { 'content-type': photoFile.type || 'image/png' },
+    // 1) Upload directly to Blob via our /api/upload handler
+    const uploaded = await upload(photoFile.name, photoFile, {
+      access: 'public',
+      handleUploadUrl: '/api/upload',
+      contentType: photoFile.type || 'image/png',
     });
-    if (!putRes.ok) throw new Error('File upload failed');
-    const { url: blobUrl } = await putRes.json();
+    const blobUrl = uploaded.url;
 
-    // 3) call generator (image-to-image)
+    // 2) Ask server to generate poster
     const genRes = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ answers, blobUrl }),
     });
-    if (!genRes.ok) {
-      const t = await genRes.text();
-      throw new Error(t || 'Generation failed');
-    }
-    const gen = await genRes.json();
 
-    // server returns { heroine, imageUrl }
+    const gen = await genRes.json();
+    console.log('generateWithPhoto response:', gen); // DEBUG
+
+    if (!genRes.ok) throw new Error(gen?.message || 'Generation failed');
+
+    // IMPORTANT: use imageUrl (not dataUrl)
     setGenImage(gen.imageUrl);
   } catch (err: any) {
     setGenError(err.message || 'Generation failed. Please try again.');
@@ -99,23 +94,32 @@ export default function QuizPage() {
   }
 };
 
-  const generateNoPhoto = async () => {
-    setLoadingGen(true);
-    setGenError(null);
-    setGenImage(null);
-    try {
-      const gen = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ answers }), // no blobUrl -> text-to-image
-      }).then(r => r.json());
-      setGenImage(gen.dataUrl);
-    } catch (e: any) {
-      setGenError('Generation failed. Please try again.');
-    } finally {
-      setLoadingGen(false);
-    }
-  };
+const generateNoPhoto = async () => {
+  setLoadingGen(true);
+  setGenError(null);
+  setGenImage(null);
+
+  try {
+    const genRes = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ answers }), // no blobUrl
+    });
+
+    const gen = await genRes.json();
+    console.log('generateNoPhoto response:', gen); // DEBUG
+
+    if (!genRes.ok) throw new Error(gen?.message || 'Generation failed');
+
+    // IMPORTANT: use imageUrl (not dataUrl)
+    setGenImage(gen.imageUrl);
+  } catch (err: any) {
+    setGenError(err.message || 'Generation failed. Please try again.');
+  } finally {
+    setLoadingGen(false);
+  }
+};
+
 
   return (
     <main className="mx-auto max-w-2xl p-6">
@@ -127,33 +131,7 @@ export default function QuizPage() {
       </div>
       <div className="mt-1 text-xs opacity-60">{Math.min(step, total)} / {total}</div>
 
-      {!done ? (
-        <section className="mt-6 space-y-4">
-          <h2 className="text-xl font-medium">{QUESTIONS[step].title}</h2>
-          <div className="grid gap-3">
-            {QUESTIONS[step].options.map((o) => (
-              <button
-                key={o.letter}
-                onClick={() => onPick(o.letter)}
-                className="rounded-xl border px-4 py-3 text-left hover:bg-neutral-50"
-              >
-                <span className="mr-2 font-semibold">{o.letter})</span>
-                {o.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center justify-between pt-2">
-            <button
-              onClick={goBack}
-              disabled={step === 0}
-              className="rounded-lg border px-3 py-2 disabled:opacity-40"
-            >
-              Back
-            </button>
-            <button onClick={restart} className="text-sm underline opacity-70">Restart</button>
-          </div>
-        </section>
-      ) : (
+      {done ? (
         <section className="mt-8 space-y-6">
           {result ? (
             <>
@@ -167,12 +145,14 @@ export default function QuizPage() {
                   <button
                     className={`rounded-lg border px-3 py-2 ${mode === 'photo' ? 'bg-black text-white' : ''}`}
                     onClick={() => setMode('photo')}
+                    disabled={loadingGen}
                   >
                     With my photo
                   </button>
                   <button
                     className={`rounded-lg border px-3 py-2 ${mode === 'no-photo' ? 'bg-black text-white' : ''}`}
                     onClick={() => setMode('no-photo')}
+                    disabled={loadingGen}
                   >
                     No photo
                   </button>
@@ -184,15 +164,11 @@ export default function QuizPage() {
                       <div className="rounded-lg border p-3 text-sm leading-relaxed">
                         <strong>Photo processing notice</strong>
                         <p className="mt-1">
-                          Your photo is uploaded temporarily for rendering and is <em>deleted immediately</em> after the poster is generated.
-                          Retention: only during processing. No analytics or re-use.
+                          Your photo is uploaded temporarily for rendering and is deleted immediately after generation.
                         </p>
-                        <button onClick={acceptConsent} className="mt-2 rounded border px-3 py-1">
-                          I agree
-                        </button>
+                        <button onClick={acceptConsent} className="mt-2 rounded border px-3 py-1">I agree</button>
                       </div>
                     )}
-
                     <PhotoUploader onPick={setPhotoFile} />
                     <button
                       onClick={generateWithPhoto}
@@ -219,18 +195,11 @@ export default function QuizPage() {
                 {genError && <div className="text-sm text-red-600">{genError}</div>}
               </div>
 
-              {/* Output */}
+              {/* --- SINGLE place where the poster renders --- */}
               {genImage && (
-                <div className="rounded-2xl border p-4">
+                <div className="rounded-2xl border p-4 mt-4">
                   <h4 className="font-semibold mb-2">Your poster</h4>
                   <img src={genImage} alt="Generated poster" className="rounded-lg max-w-full" />
-                  <a
-                    href={genImage}
-                    download="heroine-poster.png"
-                    className="mt-3 inline-block rounded border px-4 py-2"
-                  >
-                    Download PNG
-                  </a>
                 </div>
               )}
 
@@ -258,7 +227,39 @@ export default function QuizPage() {
             </div>
           )}
         </section>
+            ) : (
+        <section className="mt-6 space-y-4">
+          <h2 className="text-xl font-medium">{QUESTIONS[step].title}</h2>
+
+          <div className="grid gap-3">
+            {QUESTIONS[step].options.map((o) => (
+              <button
+                key={o.letter}
+                onClick={() => onPick(o.letter)}
+                className="rounded-xl border px-4 py-3 text-left hover:bg-neutral-50"
+              >
+                <span className="mr-2 font-semibold">{o.letter})</span>
+                {o.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between pt-2">
+            <button
+              onClick={goBack}
+              disabled={step === 0}
+              className="rounded-lg border px-3 py-2 disabled:opacity-40"
+            >
+              Back
+            </button>
+            <button onClick={restart} className="text-sm underline opacity-70">
+              Restart
+            </button>
+          </div>
+        </section>
       )}
+
+
     </main>
   );
 }

@@ -1,130 +1,130 @@
 import { Letter } from '@/types/quiz';
 
 export type Question = {
-id: number;
-title: string;
-options: { letter: Letter; label: string }[];
+  id: number;
+  title: string;
+  options: { letter: Letter; label: string }[];
 };
 
 export const QUESTIONS: Question[] = [
   {
     id: 1,
-    title: "Opening night in Würzburg. What’s your pre-show ritual?",
+    title: 'Premierenabend in Würzburg – was ist dein Pre-Show-Ritual?',
     options: [
-      { letter: 'A', label: 'Sparkly pep talk and a glittery good-luck charm.' },
-      { letter: 'B', label: 'Quiet vocal warm-ups alone in the hall.' },
-      { letter: 'C', label: 'Strut in with sunglasses and a killer one-liner.' },
-      { letter: 'D', label: 'Centering breath in the wings, focus laser-sharp.' },
+      { letter: 'A', label: 'Fünf tiefe Atemzüge im leeren Saal oder hinter den Kulissen.' },
+      { letter: 'B', label: 'Glitzer-Talisman antippen, Crew-Umarmung, „toi-toi-toi“ im Flur.' },
+      { letter: 'C', label: 'Als Regieassistenz letzte Cues checken, kurze, ruhige Ansage an alle.' },
+      { letter: 'D', label: 'Einmal allein auf die Bühne, Raum fühlen, Blick ins Publikum.' },
     ],
   },
   {
     id: 2,
-    title: 'Your Taylor Swift “energy” today?',
+    title: 'Welche Swiftie bist du heute?',
     options: [
-      { letter: 'A', label: '1989 sparkle and big-stage confidence.' },
-      { letter: 'B', label: 'folklore/evermore wintery introspection and self-acceptance.' },
-      { letter: 'C', label: 'Reputation: calling out the toxic, sharp and fearless.' },
-      { letter: 'D', label: 'Speak Now: fast wordplay, brain on fire, heart on sleeve.' },
+      { letter: 'A', label: '1989 – Großstadtglanz, Pop-Confidence, du funkelst.' },
+      { letter: 'B', label: 'folklore/evermore – Winterluft, intime Geschichten, sanfte Klarheit.' },
+      { letter: 'C', label: 'Reputation – Grenzen klar, bissiger Witz, zero nonsense.' },
+      { letter: 'D', label: 'Speak Now – schnelle Worte, Herz voran, mutiger Purpur.' },
     ],
   },
   {
     id: 3,
-    title: 'Post-show plan by the Main?',
+    title: 'Als Regieassistenz – wie führst du dein Team?',
     options: [
-      { letter: 'A', label: 'Rooftop bar glam; lights, cameras, a touch of red.' },
-      { letter: 'B', label: 'Vegan café hangout and a tiny good-deeds mission with friends.' },
-      { letter: 'C', label: 'Late-night jazz club; you and the band trade barbs.' },
-      { letter: 'D', label: 'Quiet river walk while mapping your next bold move.' },
+      { letter: 'A', label: 'Weise Assistentin: viel Wärme, klare Blicke, alle fühlen sich gesehen.' },
+      { letter: 'B', label: 'Struktur-Ninja: Call-Sheets, Plan B–D, zack-zack, Timing auf die Sekunde.' },
+      { letter: 'C', label: 'Humor-Lösung: ein witziger Spruch, freundlicher Wink – und plötzlich läuft’s.' },
+      { letter: 'D', label: 'Strategin: deutliche Fragen, elegante Entscheidungen, Fokus auf Story.' },
     ],
   },
   {
     id: 4,
-    title: 'As assistant director, your leadership vibe:',
+    title: 'Mitten in der Probe brennt’s – was tust du zuerst?',
     options: [
-      { letter: 'A', label: 'High-gloss diplomacy—everyone feels seen and excited.' },
-      { letter: 'B', label: 'Practical magic—notes are precise, morale stays high.' },
-      { letter: 'C', label: 'No-nonsense showbiz: crisp blocking, sharper comebacks.' },
-      { letter: 'D', label: 'Strategy first: smart debates, airtight vision.' },
+      { letter: 'A', label: 'Ich springe rein und trage die Szene notfalls allein.' },
+      { letter: 'B', label: 'Ich sammle das Ensemble, teile Schritte ein, sichere die Basics.' },
+      { letter: 'C', label: 'Ich entgifte die Situation mit Witz und improvisiere einen Fix.' },
+      { letter: 'D', label: 'Ich benenne das Problem klar und setze feine, feste Grenzen.' },
     ],
   },
   {
     id: 5,
-    title: 'Mid-rehearsal crisis. You:',
+    title: 'Girl Night Out in Würzburg – wie fühlt sich euer Abend an?',
     options: [
-      { letter: 'A', label: 'Step forward and carry the scene solo if needed.' },
-      { letter: 'B', label: 'Shield the team, take responsibility, steady the room.' },
-      { letter: 'C', label: 'Disarm the moment with charm and humor.' },
-      { letter: 'D', label: 'Call out the bad behavior, set firm boundaries.' },
+      { letter: 'A', label: 'Aufwärmen mit Karaoke, dann Tanzkeller-Energie bis die Beine weich sind.' },
+      { letter: 'B', label: 'Langer Talk am Tisch, kleine Cocktail-Rituale, lautes Lachen, innere Kreise.' },
+      { letter: 'C', label: 'Themen-Outfits, Mini-Performance zwischendurch, nächtliche Foto-Safari.' },
+      { letter: 'D', label: 'Brückenspaziergang, Sternenhimmel, danach leiser Küchen-Aftertalk.' },
     ],
   },
   {
     id: 6,
-    title: 'Gala outfit?',
+    title: 'Freier Tag – dein Würzburg-Programm?',
     options: [
-      { letter: 'A', label: 'Tailored suit with vintage flair.' },
-      { letter: 'B', label: 'Ethereal gown with icy lines.' },
-      { letter: 'C', label: 'Pastel couture with a statement headpiece.' },
-      { letter: 'D', label: 'Red satin with a hint of danger.' },
+      { letter: 'A', label: 'Café-Notizbuch, später Flohmarkt-Funde und Vinyl.' },
+      { letter: 'B', label: 'Alte Mainbrücke, Sonne im Gesicht, Skizzen für die nächste Inszenierung.' },
+      { letter: 'C', label: 'In der Theater Werkstatt reinschnuppern und eine Probe schauen.' },
+      { letter: 'D', label: 'Vegan kochen mit Freundinnen, abends Brettspielerunde und Musik.' },
     ],
   },
   {
     id: 7,
-    title: 'With your younger sister, you’re mostly:',
+    title: 'Gala-Outfit – wenn’s glitzern darf, was ziehst du an?',
     options: [
-      { letter: 'A', label: 'The protector—calm, steady, always there.' },
-      { letter: 'B', label: 'The mentor—turning chores into games and songs.' },
-      { letter: 'C', label: 'The strategist—co-plotting big futures together.' },
-      { letter: 'D', label: 'The truth-teller—fiercely honest, lovingly blunt.' },
+      { letter: 'A', label: 'Maßgeschneiderter Anzug mit Vintage-Twist, lässig makellos.' },
+      { letter: 'B', label: 'Eisiger Couture-Fluss, klare Linien, stille Autorität.' },
+      { letter: 'C', label: 'Pastell-Couture mit Statement-Headpiece – ein Augenzwinkern in Seide.' },
+      { letter: 'D', label: 'Tiefes Rot, Old-Hollywood-Silhouette, eine Spur Drama.' },
     ],
   },
   {
     id: 8,
-    title: 'Day off in Würzburg:',
+    title: 'Mit Emilia – welche Rolle hast du?',
     options: [
-      { letter: 'A', label: 'Lazy vegan brunch → spontaneous kindness scavenger hunt.' },
-      { letter: 'B', label: 'Archive stop → craft a razor-sharp letter to a theatre.' },
-      { letter: 'C', label: 'Costume thrifting → improv choreo session with friends.' },
-      { letter: 'D', label: 'Serenade on the Alte Mainbrücke with street musicians.' },
+      { letter: 'A', label: 'Die Beschützerin: ruhig, standhaft, „ich bin da“.' },
+      { letter: 'B', label: 'Die Mentorin: du machst aus Alltag kleine Lerngeschichten.' },
+      { letter: 'C', label: 'Die Mit-Planerin: ihr spinnt Zukunftspläne wie Profis.' },
+      { letter: 'D', label: 'Der Spiegel: liebevoll ehrlich, du sagst die Dinge, die zählen.' },
     ],
   },
   {
     id: 9,
-    title: 'The spotlight is…',
+    title: 'Dein Signature-Move auf der Bühne?',
     options: [
-      { letter: 'A', label: 'A tool. The show must go on.' },
-      { letter: 'B', label: 'Fun—I make it sparkle.' },
-      { letter: 'C', label: 'Complicated—I reveal power when it counts.' },
-      { letter: 'D', label: 'Nice, but I’d rather the work speak… until it’s solo time.' },
+      { letter: 'A', label: 'Eine perfekte hohe Note, die den Raum für einen Herzschlag stilllegt.' },
+      { letter: 'B', label: 'Mic-Drop-Pun, Vorhang zu.' },
+      { letter: 'C', label: 'Eine kleine „Wie ist das da hingekommen?“-Geste.' },
+      { letter: 'D', label: 'Ein leises Torch-Song-Moment – Mikro-Pause, Blick, Seele offen.' },
     ],
   },
   {
     id: 10,
-    title: 'Your signature stage move:',
+    title: 'Perfect Date – wo und wie?',
     options: [
-      { letter: 'A', label: 'Perfectly timed wink and mic-drop pun.' },
-      { letter: 'B', label: 'An impossibly pure, floating high note.' },
-      { letter: 'C', label: 'A “how did that appear?” prop that saves the scene.' },
-      { letter: 'D', label: 'A smoky, heart-cracking torch song.' },
+      { letter: 'A', label: 'Spaziergang bei Mondlicht, tiefer Talk, gemeinsam Sonnenaufgang schauen.' },
+      { letter: 'B', label: 'Zuhause: zusammen kochen, Vinyl knistern, ein ruhiger Abend.' },
+      { letter: 'C', label: 'Kultur-Duo: Museum + Matinee, ich mag, was du magst.' },
+      { letter: 'D', label: 'Jazz/Poetry-Night-Vibes irgendwo, danach barfuß tanzen – wo gerade Musik ist.' },
     ],
   },
   {
     id: 11,
-    title: 'Perfect date?',
+    title: 'Reise-Vibe fürs lange Wochenende?',
     options: [
-      { letter: 'A', label: 'Premiere-night glam at the theater, playful selfies, spontaneous karaoke duet.' },
-      { letter: 'B', label: 'Opera balcony, vegan candlelit dinner, a handwritten note.' },
-      { letter: 'C', label: 'After-hours jazz club; smoky duet; “we own the night.”' },
-      { letter: 'D', label: 'Long walk over the Alte Mainbrücke, straight talk, plotting bold plans.' },
+      { letter: 'A', label: 'London: Musical-Crawl, Parks, Buchläden, Nachmittagstee.' },
+      { letter: 'B', label: 'Berlin/NYC: ultramoderne Ausstellungen, Drag-Shows, Nachtclubs.' },
+      { letter: 'C', label: 'Alpen/Hütte: Schnee, Lesen, Schreiben, Atem holen.' },
+      { letter: 'D', label: 'Festival-Roadtrip: Freundeskreis, Zelte, tanzen, singen, springen – wild gehen.' },
     ],
   },
   {
     id: 12,
-    title: 'Travel vibe for a long weekend?',
+    title: 'Themenparty – welcher Twist reizt dich am meisten?',
     options: [
-      { letter: 'A', label: 'Snowy escape north for winter lights and quiet cabins.' },
-      { letter: 'B', label: 'London precision: matinee + parks + bookshops + tea; itinerary clicks.' },
-      { letter: 'C', label: 'Berlin/NYC theatre sprint: three shows in two days, backstage hellos, late-night jazz.' },
-      { letter: 'D', label: 'Spontaneous rail trip with friends to a festival; indie zines; a volunteer shift.' },
+      { letter: 'A', label: 'Alphabet-Gala: komm als etwas, das mit deinem Anfangsbuchstaben beginnt – Bonus, wenn auch Drink/Snack passen.' },
+      { letter: 'B', label: 'Monochrome Muse: jede*r in exakt einer Farbe – Drinks & Playlist passend zum Ton.' },
+      { letter: 'C', label: 'Zeitreise-Revue: 20er-Flapper, 50er-Silhouette, 80er-Neon – Mini-Acts pro Ära.' },
+      { letter: 'D', label: '„Backstage Bag“: alle bringen eine Requisite zur Figur – Impro-Mini-Szenen im Wohnzimmer.' },
     ],
   },
 ];

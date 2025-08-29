@@ -1,15 +1,119 @@
-// src/app/api/generate/route.ts
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { toFile } from 'openai/uploads';
 import { PROMPTS } from '@/lib/prompts';
 import { scoreQuiz } from '@/lib/scoring';
-import { del } from '@vercel/blob';
+import { del, put } from '@vercel/blob';
 
 export const runtime = 'nodejs';
 
+/** Safety-friendly prompt builder */
+function buildPrompt(heroine: string, style: string, mode: 'text' | 'edit') {
+  const safety =
+    'Portrait from chest up, neutral expression, fully clothed, tasteful, PG, non-suggestive, no violence, no weapons, studio lighting, illustration/poster style';
+  return mode === 'edit'
+    ? `Transform this person into a stylized ${heroine} theatre poster portrait. ${style}. ${safety}. Keep facial identity faithful.`
+    : `Stylized ${heroine} theatre poster portrait. ${style}. ${safety}.`;
+}
+
+/** Persist either a remote URL or data URL to Vercel Blob for a stable link */
+async function persistToBlob(imageRef: string) {
+  const fname = `posters/${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
+
+  if (imageRef.startsWith('data:image/')) {
+    const b64 = imageRef.split(',')[1]!;
+    const buf = Buffer.from(b64, 'base64');
+    const { url } = await put(fname, buf, {
+      access: 'public',
+      contentType: 'image/png',
+      token: process.env.BLOB_READ_WRITE_TOKEN!,
+    });
+    return url;
+  } else {
+    const res = await fetch(imageRef);
+    const ab = await res.arrayBuffer();
+    const { url } = await put(fname, new Uint8Array(ab), {
+      access: 'public',
+      contentType: 'image/png',
+      token: process.env.BLOB_READ_WRITE_TOKEN!,
+    });
+    return url;
+  }
+}
+
+/** EDIT path via plain HTTP (works regardless of SDK version) */
+async function generateEditViaHTTP(blobUrl: string, prompt: string) {
+  // fetch selfie bytes
+  const imgRes = await fetch(blobUrl);
+  const ab = await imgRes.arrayBuffer();
+
+  const form = new FormData();
+  form.append('model', 'gpt-image-1');
+  form.append('prompt', prompt);
+  form.append('size', '1024x1536');
+  // attach file as Blob
+  form.append('image', new Blob([ab], { type: 'image/png' }), 'input.png');
+
+  const resp = await fetch('https://api.openai.com/v1/images/edits', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY!}` },
+    body: form,
+  });
+
+  const text = await resp.text();
+  if (!resp.ok) throw new Error(text);
+
+  const json: any = JSON.parse(text);
+  const d = json?.data?.[0];
+  const url =
+    d?.url ??
+    (d?.b64_json ? `data:image/png;base64,${d.b64_json}` : undefined);
+
+  if (!url) throw new Error('No image returned from edits endpoint');
+  return url as string;
+}
+
+/** TEXT path via SDK; handles url OR b64_json */
+async function tryGenerateText(openai: OpenAI, heroine: string, style: string) {
+  const make = async (prompt: string) => {
+    const out = await openai.images.generate({
+      model: 'gpt-image-1',
+      prompt,
+      size: '1024x1536',
+    });
+    const d: any = out?.data?.[0];
+    const finalUrl =
+      d?.url ??
+      (d?.b64_json ? `data:image/png;base64,${d.b64_json}` : undefined);
+    if (!finalUrl) throw new Error('No image returned');
+    return finalUrl;
+  };
+
+  try {
+    return await make(buildPrompt(heroine, style, 'text'));
+  } catch (err: any) {
+    if (err?.code === 'moderation_blocked' || err?.status === 400) {
+      return await make(
+        `Stylized theatre poster portrait of a fully clothed performer in an elegant, modest outfit. ` +
+          `Focus on abstract, graphic, PG visuals with decorative background. ${style}. Portrait from chest up, non-suggestive.`
+      );
+    }
+    throw err;
+  }
+}
+
+/** EDIT path using the HTTP helper above; always deletes the selfie */
+async function tryGenerateEdit(heroine: string, style: string, blobUrl: string) {
+  try {
+    const prompt = buildPrompt(heroine, style, 'edit');
+    return await generateEditViaHTTP(blobUrl, prompt);
+  } finally {
+    // delete the uploaded selfie ASAP
+    await del(blobUrl, { token: process.env.BLOB_READ_WRITE_TOKEN! }).catch(() => {});
+  }
+}
+
 export async function POST(req: Request) {
-  const { answers, blobUrl }: { answers: Record<number,'A'|'B'|'C'|'D'>; blobUrl?: string } =
+  const { answers, blobUrl }: { answers: Record<number, 'A' | 'B' | 'C' | 'D'>; blobUrl?: string } =
     await req.json();
 
   const { winner } = scoreQuiz(answers);
@@ -17,29 +121,36 @@ export async function POST(req: Request) {
 
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-  let imageUrl: string;
+  try {
+    const rawUrl = blobUrl
+      ? await tryGenerateEdit(winner, style, blobUrl)
+      : await tryGenerateText(openai, winner, style);
 
-  if (blobUrl) {
-    const imgRes = await fetch(blobUrl);
-    const ab = await imgRes.arrayBuffer();
-    const file = await toFile(Buffer.from(ab), 'input.png', { type: 'image/png' });
+    // Normalize: always return a stable public URL
+    const imageUrl = await persistToBlob(rawUrl);
 
-    const out = await openai.images.edits({
-      model: 'gpt-image-1',
-      image: file,
-      prompt: `Transform this person into a stylized ${winner} poster portrait. ${style}. Keep facial identity faithful.`,
-      size: '1024x1536',
-    });
-    imageUrl = out.data[0].url!;
-    await del(blobUrl, { token: process.env.BLOB_READ_WRITE_TOKEN! }); // delete selfie ASAP
-  } else {
-    const out = await openai.images.generate({
-      model: 'gpt-image-1',
-      prompt: `Stylized ${winner} theatre poster portrait. ${style}. Solo portrait, flattering light.`,
-      size: '1024x1536',
-    });
-    imageUrl = out.data[0].url!;
+    return NextResponse.json({ heroine: winner, imageUrl });
+  } catch (err: any) {
+    // Optional: fallback to local posters if moderation blocks
+    if (err?.code === 'moderation_blocked' || err?.status === 400) {
+      const slugMap: Record<string, string> = {
+        Glinda: 'glinda', // keep if you have local posters
+        Christine: 'christine',
+        'Velma Kelly': 'velma-kelly',
+        Elsa: 'elsa',
+        'Veronica Sawyer': 'veronica-sawyer',
+        'Angelica Schuyler': 'angelica-schuyler',
+        'Mary Poppins': 'mary-poppins',
+        Satine: 'satine',
+        Maria: 'maria',
+        Lydia: 'lydia',
+        Maureen: 'maureen',
+      };
+      const slug = slugMap[winner] ?? 'christine';
+      return NextResponse.json({ heroine: winner, imageUrl: `/posters/${slug}.png` });
+    }
+
+    console.error(err);
+    return NextResponse.json({ error: 'internal_error', message: String(err?.message || err) }, { status: 500 });
   }
-
-  return NextResponse.json({ heroine: winner, imageUrl });
 }
