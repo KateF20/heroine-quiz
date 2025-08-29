@@ -6,6 +6,7 @@ export async function POST(req: Request) {
     typeof passcode === 'string' &&
     process.env.SITE_PASSWORD &&
     passcode === process.env.SITE_PASSWORD;
+  console.log(process.env.SITE_PASSWORD)
 
   if (!ok) return NextResponse.json({ ok: false }, { status: 401 });
 
