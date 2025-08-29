@@ -7,7 +7,6 @@ import { del, put } from '@vercel/blob';
 type ImageGenData = { url?: string; b64_json?: string };
 type APIErrorLike = { status?: number; code?: string; message?: string };
 
-
 export const runtime = 'nodejs';
 
 /** Safety-friendly prompt builder */
@@ -46,7 +45,6 @@ async function persistToBlob(imageRef: string) {
 
 /** EDIT path via plain HTTP (works regardless of SDK version) */
 async function generateEditViaHTTP(blobUrl: string, prompt: string) {
-  // fetch selfie bytes
   const imgRes = await fetch(blobUrl);
   const ab = await imgRes.arrayBuffer();
 
@@ -54,7 +52,6 @@ async function generateEditViaHTTP(blobUrl: string, prompt: string) {
   form.append('model', 'gpt-image-1');
   form.append('prompt', prompt);
   form.append('size', '1024x1536');
-  // attach file as Blob
   form.append('image', new Blob([ab], { type: 'image/png' }), 'input.png');
 
   const resp = await fetch('https://api.openai.com/v1/images/edits', {
@@ -73,9 +70,10 @@ async function generateEditViaHTTP(blobUrl: string, prompt: string) {
     (d?.b64_json ? `data:image/png;base64,${d.b64_json}` : undefined);
 
   if (!url) throw new Error('No image returned from edits endpoint');
-  return url as string;
+  return url;
 }
 
+/** TEXT path via SDK; handles url OR b64_json */
 async function tryGenerateText(openai: OpenAI, heroine: string, style: string) {
   const make = async (prompt: string) => {
     const out = await openai.images.generate({
@@ -94,7 +92,7 @@ async function tryGenerateText(openai: OpenAI, heroine: string, style: string) {
   try {
     return await make(buildPrompt(heroine, style, 'text'));
   } catch (err: unknown) {
-    const e = err as APIErrorLike;
+    const e = err as APIErrorLike | undefined;
     if (e?.code === 'moderation_blocked' || e?.status === 400) {
       return await make(
         `Stylized theatre poster portrait of a fully clothed performer in an elegant, modest outfit. ` +
@@ -105,16 +103,24 @@ async function tryGenerateText(openai: OpenAI, heroine: string, style: string) {
   }
 }
 
-
 /** EDIT path using the HTTP helper above; always deletes the selfie */
 async function tryGenerateEdit(heroine: string, style: string, blobUrl: string) {
   try {
     const prompt = buildPrompt(heroine, style, 'edit');
     return await generateEditViaHTTP(blobUrl, prompt);
   } finally {
-    // delete the uploaded selfie ASAP
     await del(blobUrl, { token: process.env.BLOB_READ_WRITE_TOKEN! }).catch(() => {});
   }
+}
+
+/** Safely extract an error message from unknown */
+function getErrorMessage(err: unknown): string {
+  if (typeof err === 'string') return err;
+  if (err && typeof err === 'object' && 'message' in err) {
+    const maybe = (err as { message?: unknown }).message;
+    if (typeof maybe === 'string') return maybe;
+  }
+  return 'internal_error';
 }
 
 export async function POST(req: Request) {
@@ -131,16 +137,10 @@ export async function POST(req: Request) {
       ? await tryGenerateEdit(winner, style, blobUrl)
       : await tryGenerateText(openai, winner, style);
 
-    // Normalize: always return a stable public URL
     const imageUrl = await persistToBlob(rawUrl);
-
     return NextResponse.json({ heroine: winner, imageUrl });
   } catch (err: unknown) {
-    const e = err as APIErrorLike | Error | unknown;
-    const msg =
-      (typeof e === 'object' && e && 'message' in e && typeof (e as any).message === 'string')
-        ? (e as any).message
-        : 'internal_error';
+    const msg = getErrorMessage(err);
     console.error(err);
     return NextResponse.json({ error: 'internal_error', message: msg }, { status: 500 });
   }
